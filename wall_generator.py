@@ -21,21 +21,60 @@ num_rooms = []
 SCALE = 0.033149677* 0.0003048 #px to ft to km
 distance_hypo = []
 average_strength = []
+wifi_position = []
 
 
 def strengthLoss(distance,wall_thickness , frequency = 2.4):
+    """
+    Calculate the percentage of loss in percentages
+    for simplicity the strength decreases by 15% every time the signal goes
+    through a wall with thickness of 1px
+    :param distance:
+    :type distance:
+    :param wall_thickness:
+    :type wall_thickness:
+    :param frequency:
+    :type frequency:
+    :return:
+    :rtype:
+    """
     global SCALE
     # return 14 - (20*math.log(SCALE*distance, 10) + 20*math.log(frequency, 10) + 32.45) - 6
     return 100*(0.85**wall_thickness)
 
 def detectCollisions(signal, rooms):
+    """
+    Returns True when a rectangle collides with another
+    :param signal:
+    :type signal:
+    :param rooms:
+    :type rooms:
+    :return:
+    :rtype:
+    """
     for wall in rooms:
         return signal.colliderect(wall)
 
 def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
+    """
+    Returns the strength and distance of a wifi to each access point.
+    Updates the list of average strength, distance and position of the wifi router during each iteration
+    :param wifi_pos:
+    :type wifi_pos:
+    :param access_list:
+    :type access_list:
+    :param wifi:
+    :type wifi:
+    :param screen3:
+    :type screen3:
+    :param iteration:
+    :type iteration:
+    :return:
+    :rtype:
+    """
     background3 = pygame.Surface( (disp_width, disp_height) )
     background3.blit(screen3, (0, 0))
-    const_speed = 100
+    const_speed = 10
     total_hypo = 0
     total_strength = 0
     for i, points in enumerate(access_list):
@@ -77,15 +116,39 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
             clock.tick(120)
     distance_hypo.append((total_hypo, iteration))  ## total distance between wifi and the access points
     average_strength.append((total_strength/len(accessPoints),iteration)) ## average strength of wifi in %
+    wifi_position.append(wifi_pos, iteration)
     return False
 
 def CreateRooms(screen, pos1, pos2,thickness=5):
+    """
+    Create a rectangular box which resembles a room by giving the top-left and bottom-right corner points
+    The thickness of the wall is by default 5px thick
+    :param screen:
+    :type screen:
+    :param pos1:
+    :type pos1:
+    :param pos2:
+    :type pos2:
+    :param thickness:
+    :type thickness:
+    :return:
+    :rtype:
+    """
     x1, y1 = pos1
     x2, y2 = pos2
     room = pygame.draw.rect(screen, (255,0,0),(*pos1,x2-x1,y2-y1), thickness)
     num_rooms.append(room)
 
 def distanceStart(wifi_pos, access_pos):
+    """
+    Calculate the Euclidean distance between 2 points
+    :param wifi_pos:
+    :type wifi_pos:
+    :param access_pos:
+    :type access_pos:
+    :return:
+    :rtype:
+    """
     distance = np.linalg.norm(wifi_pos - access_pos)
     return distance
 
@@ -114,8 +177,6 @@ def routerPlacement(screen,background, pressedEnter = False):
         distance = 0
         for a in accessPoints:
             distance += distanceStart(np.array((x, y)), np.array(a))
-            # wifi = pygame.Rect(x, y, 5, 5)
-            # wifi_signal((x,y),accessPoints, wifi)
         if distance < min_distance:
             distance_list.append((x, y))
             pos_list.append(distance)
@@ -126,7 +187,6 @@ def routerPlacement(screen,background, pressedEnter = False):
         list_wifi.append((x, y))
         screen.blit(background, (0, 0))
         pygame.draw.rect(screen, (0, 255, 0), (x, y, 5, 5), 0)
-        # pygame.time.wait(100)
         pygame.display.update()
         for event2 in pygame.event.get():
             if event2.type == pygame.KEYDOWN:
@@ -139,10 +199,19 @@ def routerPlacement(screen,background, pressedEnter = False):
 
 
 def RandomWifi(screen2,pressedEnter = False):
+    """
+    Randomly places wifi on the display before running the signal function
+    This function is triggered after the user creates the rooms on the display and then presses Enter
+    :param screen2:
+    :type screen2:
+    :param pressedEnter:
+    :type pressedEnter:
+    :return:
+    :rtype:
+    """
     background2 = pygame.Surface((disp_width, disp_height))
     background2.blit(screen2, (0, 0))
     iteration = 0
-    # pressedEnter = False
     while True:
         iteration += 1
         screen2.blit(background2, (0, 0))
@@ -167,6 +236,15 @@ def RandomWifi(screen2,pressedEnter = False):
             return True
 
 def PlotGraph(average_strength, distance_hypo):
+    """
+    Plots the graph of distance and strength
+    :param average_strength:
+    :type average_strength:
+    :param distance_hypo:
+    :type distance_hypo:
+    :return:
+    :rtype:
+    """
     max_Y_strength = []
     min_dist = np.inf
     min_Y_distance = []
