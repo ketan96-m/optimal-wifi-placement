@@ -116,7 +116,7 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
             clock.tick(120)
     distance_hypo.append((total_hypo, iteration))  ## total distance between wifi and the access points
     average_strength.append((total_strength/len(accessPoints),iteration)) ## average strength of wifi in %
-    wifi_position.append(wifi_pos, iteration)
+    wifi_position.append((wifi_pos, iteration))
     return False
 
 def CreateRooms(screen, pos1, pos2,thickness=5):
