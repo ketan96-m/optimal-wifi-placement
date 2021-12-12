@@ -7,50 +7,55 @@ import math
 
 #Initialize the pygame module
 pygame.init()
-#Create window
+#Height and width of window in pixels
 disp_width, disp_height = 1300,700
+#Create window
 disp = pygame.display.set_mode((disp_width, disp_height),)
 clock = pygame.time.Clock()
 pygame.time.wait(3000)
-isLeftPressed = False
-isRightPressed = False
-isKeyPressed = False
-accessPoints = []
-num_rooms = []
+
+#Bools for input
+isLeftPressed = False   #for left mouse button
+isRightPressed = False  #for right mouse button
+isKeyPressed = False    #for anykeyboard button
+accessPoints = []       #store the access points in list
+num_rooms = []          #store the rooms in a list
 #scale -- 1px is equivalent to 0.033149677ft
 SCALE = 0.033149677* 0.0003048 #px to ft to km
-distance_hypo = []
-average_strength = []
-wifi_position = []
+distance_hypo = []      #total distance between the wifi router and each accesspoints
+average_strength = []   #strength in % between the wifi router and each accesspoints
+wifi_position = []      #x and y coordinates of the wifi router during each iteration
 
 
-def strengthLoss(distance,wall_thickness , frequency = 2.4):
+def strengthLoss(distance,wall_thickness):
     """
     Calculate the percentage of loss in percentages
     for simplicity the strength decreases by 15% every time the signal goes
     through a wall with thickness of 1px
-    :param distance:
-    :type distance:
-    :param wall_thickness:
-    :type wall_thickness:
-    :param frequency:
-    :type frequency:
-    :return:
-    :rtype:
+    :param distance: Euclidean between the wifi router and acces point
+    :type distance: float
+    :param wall_thickness: Wall thickness in pixels
+    :type wall_thickness: int
+    :return: percentage of strength
+    :rtype: float
+    >>>strengthLoss(10, 15, 2.4)
+    8.735421910125167
+    >>>strengthLoss(0,0,2.4)
+    100.0
+    >>>strengthLoss(5, 1200, 2.4)
+    2.007755651979849e-83
     """
-    global SCALE
-    # return 14 - (20*math.log(SCALE*distance, 10) + 20*math.log(frequency, 10) + 32.45) - 6
     return 100*(0.85**wall_thickness)
 
 def detectCollisions(signal, rooms):
     """
-    Returns True when a rectangle collides with another
-    :param signal:
-    :type signal:
-    :param rooms:
-    :type rooms:
-    :return:
-    :rtype:
+    Returns True when a signal collides with the walls of a room
+    :param signal: signal emitted by router
+    :type signal: pygame Rect (object)
+    :param rooms: rectangular rooms created
+    :type rooms: pygame Rect (object)
+    :return: True if signal position and wall position is same
+    :rtype: bool
     """
     for wall in rooms:
         return signal.colliderect(wall)
@@ -79,7 +84,7 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
     total_strength = 0
     for i, points in enumerate(access_list):
         signal_pos = pygame.Rect(*wifi_pos, 5, 5)
-        hypo = math.hypot(points[0]-wifi_pos[0],points[1]-wifi_pos[1])/const_speed
+        hypo = distanceStart(wifi_pos, points)/const_speed
         total_hypo += hypo
         radians = math.atan2(points[1]-wifi_pos[1], points[0]-wifi_pos[0])
         x_speed = math.cos(radians)*const_speed
@@ -101,13 +106,9 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
                 pixel_values = screen3.get_at((int(x), int(y)))
                 if pixel_values[0] != 0:
                     wall_thickness += 1
-                    # print(pixel_values)
                 signal = pygame.draw.circle(screen3, (230, 230, 250), (x, y), 5, 0)
-                # if detectCollisions(signal, num_rooms):
-                #     print(signal.x, signal.y)
                 hypo -= 1
             else:
-                # print("wall_thicknes",wall_thickness)
                 strength = strengthLoss(hypo + wall_thickness, wall_thickness)
                 print(f"{strength} %")
                 total_strength += strength
@@ -148,54 +149,14 @@ def distanceStart(wifi_pos, access_pos):
     :type access_pos:
     :return:
     :rtype:
+    >>>distanceStart(40,50)
+    64.03124237432849
+    >>>distanceStart(50,80)
+    94.33981132056603
+    >>>distanceStart(123.5,0)
+    123.5
     """
-    distance = np.linalg.norm(wifi_pos - access_pos)
-    return distance
-
-
-
-
-def routerPlacement(screen,background, pressedEnter = False):
-    """
-    randomly place a rectangle on the screen
-    :param screen:
-    :type screen:
-    :return:
-    :rtype:
-    """
-    distance_list = []
-    pos_list = []
-    min_distance = np.inf
-    list_wifi = []
-    iteration_list = []
-    closeFound = False
-    count = 0
-    while True:
-        count += 1
-        x, y = random.randrange(disp_width), random.randrange(disp_height)
-
-        distance = 0
-        for a in accessPoints:
-            distance += distanceStart(np.array((x, y)), np.array(a))
-        if distance < min_distance:
-            distance_list.append((x, y))
-            pos_list.append(distance)
-            iteration_list.append(count)
-            min_distance = distance
-            closeFound=True
-
-        list_wifi.append((x, y))
-        screen.blit(background, (0, 0))
-        pygame.draw.rect(screen, (0, 255, 0), (x, y, 5, 5), 0)
-        pygame.display.update()
-        for event2 in pygame.event.get():
-            if event2.type == pygame.KEYDOWN:
-                if event2.key == pygame.K_RETURN:
-                    pressedEnter = True
-            if event2.type == pygame.QUIT:
-                pygame.quit()
-        if pressedEnter:
-            return (pos_list, iteration_list)
+    return math.hypot(access_pos[0]-wifi_pos[0], access_pos[1]-wifi_pos[1])
 
 
 def RandomWifi(screen2,pressedEnter = False):
@@ -222,7 +183,6 @@ def RandomWifi(screen2,pressedEnter = False):
         pygame.display.update()
         interrupt_wifi = wifi_signal((x, y), accessPoints, wifi, screen2, iteration)
         print('Number of random wifi placement', iteration)
-        print(pygame.event.get())
         for event3 in pygame.event.get():
             print(event3.type)
             if event3.type == pygame.QUIT:
@@ -233,17 +193,19 @@ def RandomWifi(screen2,pressedEnter = False):
         if pressedEnter:
             return True
         if interrupt_wifi:
+            screen2.blit(background2, (0, 0))
+            pygame.display.update()
             return True
 
 def PlotGraph(average_strength, distance_hypo):
     """
     Plots the graph of distance and strength
-    :param average_strength:
-    :type average_strength:
-    :param distance_hypo:
-    :type distance_hypo:
-    :return:
-    :rtype:
+    :param average_strength: list of average strength percentage values
+    :type average_strength: list
+    :param distance_hypo: list of total distance values between the wifi router and acces points
+    :type distance_hypo: list
+    :return: matplotplotlib line plot
+    :rtype: None
     """
     max_Y_strength = []
     min_dist = np.inf
@@ -258,10 +220,32 @@ def PlotGraph(average_strength, distance_hypo):
 
     fig, ax = plt.subplots()
     ax.plot(min_X_distance, min_Y_distance)
+    ax.set_xlabel('Distance')
+    ax.set_ylabel('Iterations')
+    plt.title('Distance vs Iterations')
     for i, txt in enumerate(max_Y_strength):
         ax.annotate(txt, (min_X_distance[i], min_Y_distance[i]))
     plt.show()
 
+def optimalWifiPlacement(distance_hypo, wifi_pos):
+    """
+    From the distance list and wifi position list find the optimal wifi location
+    :param distance_hypo: list of distance between wifi and access points
+    :type distance_hypo: list
+    :param wifi_pos: list of wifi router locations
+    :type wifi_pos: list
+    :return: tuple of X and Y coordinates
+    :rtype: tuple
+    >>> A = [(10,1),(50,2),(20,3),(8,4),(100,5)]
+    >>> B = [((5,10),1),((3,9),2),((4,4),3),((10,12),4),((9,8),5)]
+    >>> optimalWifiPlacement(A,B)
+    (10, 12)
+    """
+    least_pos, iteration = min(distance_hypo, key=lambda x: x[0])
+    (X,Y) = wifi_pos[iteration-1][0]
+    return X,Y
+
+#Main Loop
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -269,7 +253,7 @@ while True:
             sys.exit()
         if event.type == pygame.MOUSEBUTTONUP: # mouse button was released
             if isLeftPressed:
-                CreateRooms(disp, initial_pos, pos,13)
+                CreateRooms(disp, initial_pos, pos, 13)
                 isLeftPressed = False
 
         if event.type == pygame.MOUSEBUTTONDOWN: #left mouse button is pressed
@@ -299,7 +283,15 @@ while True:
         print("End of RandomWifi")
         isKeyPressed = False
         PlotGraph(average_strength, distance_hypo)
-        # (X, Y) = routerPlacement(disp, background, False)
+        X,Y = optimalWifiPlacement(distance_hypo, wifi_position)
+        # pygame.draw.circle(disp, (255,255,0),(X,Y),5,5)
+        pygame.draw.line(disp,(255,215,0),(X,Y-30),(X,Y+30),2)
+        pygame.draw.line(disp,(255,215,0),(X-30,Y),(X+30,Y),2)
+        pygame.display.update()
+        if interrupt:
+            pygame.time.wait(3000)
+            pygame.quit()
+            sys.exit()
 
     pygame.display.flip()
 
