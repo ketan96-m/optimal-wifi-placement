@@ -1,6 +1,7 @@
 import sys
 import random
 import numpy as np
+import pandas as pd
 import pygame
 import matplotlib.pyplot as plt
 import math
@@ -18,13 +19,13 @@ def strengthLoss(distance, wall_thickness, frequency=2.4):
     :return: percentage of strength
     :rtype: float
     >>>strengthLoss(10, 15, 2.4)
-    8.735421910125167
+    45.86791104657396
     >>>strengthLoss(0,0,2.4)
     100.0
     >>>strengthLoss(5, 1200, 2.4)
-    2.007755651979849e-83
+    1.8456688721250335e-25
     """
-    return 100*(0.85**wall_thickness)
+    return 100*(0.95**wall_thickness)*(0.9990**distance)
 
 def detectCollisions(signal, rooms):
     """
@@ -56,7 +57,7 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
     :return:
     :rtype:
     """
-    background3 = pygame.Surface( (disp_width, disp_height) )
+    background3 = pygame.Surface( (DISP_WIDTH, DISP_HEIGHT) )
     background3.blit(screen3, (0, 0))
     const_speed = 10
     total_hypo = 0
@@ -77,7 +78,7 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
                     return True
                 if event4.type == pygame.QUIT:
                     pygame.quit()
-            if signal_pos.x >= disp_width or signal_pos.x <= 0 or signal_pos.y >= disp_height or signal_pos.y <= 0:
+            if signal_pos.x >= DISP_WIDTH or signal_pos.x <= 0 or signal_pos.y >= DISP_HEIGHT or signal_pos.y <= 0:
                 break
             if hypo > 5:
                 x += x_speed
@@ -85,7 +86,7 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
                 pixel_values = screen3.get_at((int(x), int(y)))
                 if pixel_values[0] != 0:
                     wall_thickness += 1
-                signal = pygame.draw.circle(screen3, (230, 230, 250), (x, y), 5, 0)
+                signal = pygame.draw.circle(screen3, (159, 43, 104), (x, y), 5, 0)
                 hypo -= 1
             else:
                 strength = strengthLoss(hypo + wall_thickness, wall_thickness)
@@ -94,9 +95,9 @@ def wifi_signal(wifi_pos, access_list, wifi,screen3, iteration):
                 break
             pygame.display.flip()
             clock.tick(120)
-    distance_hypo.append((total_hypo, iteration))  ## total distance between wifi and the access points
-    average_strength.append((total_strength/len(accessPoints),iteration)) ## average strength of wifi in %
-    wifi_position.append((wifi_pos, iteration))
+    DISTANCE_HYPO.append((total_hypo, iteration))  ## total distance between wifi and the access points
+    AVERAGE_STRENGTH.append((total_strength / len(ACCESSPOINTS), iteration)) ## average strength of wifi in %
+    WIFI_POSITION.append((wifi_pos, iteration))
     return False
 
 def CreateRooms(screen, pos1, pos2,thickness=5):
@@ -117,7 +118,7 @@ def CreateRooms(screen, pos1, pos2,thickness=5):
     x1, y1 = pos1
     x2, y2 = pos2
     room = pygame.draw.rect(screen, (255,0,0),(*pos1,x2-x1,y2-y1), thickness)
-    num_rooms.append(room)
+    NUM_ROOMS.append(room)
 
 def distanceStart(wifi_pos, access_pos):
     """
@@ -149,18 +150,18 @@ def RandomWifi(screen2,pressedEnter = False):
     :return:
     :rtype:
     """
-    background2 = pygame.Surface((disp_width, disp_height))
+    background2 = pygame.Surface((DISP_WIDTH, DISP_HEIGHT))
     background2.blit(screen2, (0, 0))
     iteration = 0
     while True:
         iteration += 1
         screen2.blit(background2, (0, 0))
-        x, y = random.randrange(disp_width), random.randrange(disp_height)
+        x, y = random.randrange(DISP_WIDTH), random.randrange(DISP_HEIGHT)
         wifi = pygame.Rect(x, y, 5, 5)
         pygame.time.wait(100)
         pygame.draw.rect(screen2, (0, 255, 0), (x, y, 5, 5), 0)
         pygame.display.update()
-        interrupt_wifi = wifi_signal((x, y), accessPoints, wifi, screen2, iteration)
+        interrupt_wifi = wifi_signal((x, y), ACCESSPOINTS, wifi, screen2, iteration)
         print('Number of random wifi placement', iteration)
         for event3 in pygame.event.get():
             print(event3.type)
@@ -225,18 +226,80 @@ def optimalWifiPlacement(distance_hypo, wifi_pos):
     (X,Y) = wifi_pos[iteration-1][0]
     return X,Y
 
+def take_width_height(width_height, type):
+    """
+    validate whether the height/width values enter are valid and within range
+    :param width_height: width/height entered by the user
+    :type width_height: str
+    :param type: whether the value entered is width('w') or height('h')
+    :type type: str
+    :return: returns the valid integer values of width and height
+    :rtype: int
+    >>> take_width_height('200', 'w')
+    Please enter an integer between 300-1500:
+    >>>take_width_height('300','h')
+    300
+    >>>take_width_height('acbd','w')
+    Please enter an integer between 300-1500:
+    """
+    valid = False
+    valid_int = False
+    while not valid:
+        try:
+            if width_height.isnumeric():
+                valid_int = True
+                width_height = int(width_height)
+            else:
+                if type == 'w':
+                    width_height = input('Please enter an integer between 300-1500: ')
+                elif type == 'h':
+                    width_height = input('Please enter an integer between 300-800: ')
+        except (ValueError, TypeError):
+            width_height = input('Please enter an integer!')
+        if valid_int:
+            if type == 'w':
+                if width_height < 300 or width_height > 1500:
+                    width_height = input('Please enter an integer between 300-1500: ')
+                else:
+                    valid = True
+            elif type == 'h':
+                if width_height < 300 or width_height > 800:
+                    width_height = input('Please enter an integer between 300-800: ')
+                else:
+                    valid = True
+    return width_height
+
+def create_csv(wifi_pos, strength, distance):
+    # wifi, iterations = zip(*wifi_pos)
+    # wifi = pd.Series(wifi)
+    # strength_per, it = zip(*strength)
+    # strength_per = pd.Series(strength_per)
+    # total_dis, ite = zip(*distance)
+    # total_dis = pd.Series(total_dis)
+    print(wifi_pos)
+    df = pd.DataFrame(columns=['iterations', 'wifi_pos', 'total_distance', 'strength'])
+    for wifi, strength_per, total_distance in zip(wifi_pos, strength, distance):
+        df1 = pd.DataFrame([[wifi[1], wifi[0], strength_per[0], total_distance[0]]], columns=['iterations', 'wifi_pos', 'total_distance', 'strength'], index = [wifi[1]])
+        df.append(df1)
+    df.to_csv('wifi_pos.csv')
 
 if __name__ == '__main__':
     #take input from the user for the wall thickness
+    # take input from the user for the wall thickness
+    print('#' * 100)
+    DISP_WIDTH = input('Enter the width of the window between 300-1500: ')
+    DISP_WIDTH = take_width_height(DISP_WIDTH, 'w')
+    DISP_HEIGHT = input('Enter the height of the window between 300-800: ')
+    DISP_HEIGHT = take_width_height(DISP_HEIGHT, 'h')
     thickness = int(input('Enter the thickness of rooms in range 1-20: '))
     while thickness < 1 or thickness>20:
         thickness = int(input("Please enter the thickness between 1 and 20"))
     # Initialize the pygame module
     pygame.init()
     # Height and width of window in pixels
-    disp_width, disp_height = 1300, 700
+    #DISP_WIDTH, DISP_HEIGHT = 1300, 700
     # Create window
-    disp = pygame.display.set_mode((disp_width, disp_height), )
+    disp = pygame.display.set_mode((DISP_WIDTH, DISP_HEIGHT),)
     pygame.display.set_caption('Optimal Wifi Position')
     clock = pygame.time.Clock()
     pygame.time.wait(3000)
@@ -245,13 +308,13 @@ if __name__ == '__main__':
     isLeftPressed = False  # for left mouse button
     isRightPressed = False  # for right mouse button
     isKeyPressed = False  # for anykeyboard button
-    accessPoints = []  # store the access points in list
-    num_rooms = []  # store the rooms in a list
+    ACCESSPOINTS = []  # store the access points in list
+    NUM_ROOMS = []  # store the rooms in a list
     # scale -- 1px is equivalent to 0.033149677ft
     SCALE = 0.033149677 * 0.0003048  # px to ft to km
-    distance_hypo = []  # total distance between the wifi router and each accesspoints
-    average_strength = []  # strength in % between the wifi router and each accesspoints
-    wifi_position = []  # x and y coordinates of the wifi router during each iteration
+    DISTANCE_HYPO = []  # total distance between the wifi router and each accesspoints
+    AVERAGE_STRENGTH = []  # strength in % between the wifi router and each accesspoints
+    WIFI_POSITION = []  # x and y coordinates of the wifi router during each iteration
 
     # Main Loop
     while True:
@@ -273,7 +336,7 @@ if __name__ == '__main__':
                     pos = pygame.mouse.get_pos()
                     pygame.draw.rect(disp, (0, 0, 255), (pos[0], pos[1], 10, 10), 0)
                     # add this position to the accesspoints list
-                    accessPoints.append(pos)
+                    ACCESSPOINTS.append(pos)
                 pos = pygame.mouse.get_pos()
                 pygame.display.update()
             if event.type == pygame.MOUSEMOTION and isLeftPressed:  # mouse is moving while we press the left mouse button
@@ -284,14 +347,14 @@ if __name__ == '__main__':
                 isKeyPressed = True
 
         if isKeyPressed:
-            background = pygame.Surface((disp_width, disp_height))
+            background = pygame.Surface((DISP_WIDTH, DISP_HEIGHT))
             background.blit(disp, (0, 0))
             pygame.display.flip()
             interrupt = RandomWifi(disp, False)
             print("End of RandomWifi")
             isKeyPressed = False
-            PlotGraph(average_strength, distance_hypo)
-            X, Y = optimalWifiPlacement(distance_hypo, wifi_position)
+            PlotGraph(AVERAGE_STRENGTH, DISTANCE_HYPO)
+            X, Y = optimalWifiPlacement(DISTANCE_HYPO, WIFI_POSITION)
             # pygame.draw.circle(disp, (255,255,0),(X,Y),5,5)
             pygame.draw.line(disp, (255, 215, 0), (X, Y - 30), (X, Y + 30), 2)
             pygame.draw.line(disp, (255, 215, 0), (X - 30, Y), (X + 30, Y), 2)
@@ -303,6 +366,7 @@ if __name__ == '__main__':
                 pygame.image.save(disp, "layout.jpeg")
                 pygame.time.wait(5000)
                 pygame.quit()
+                create_csv(WIFI_POSITION,AVERAGE_STRENGTH,DISTANCE_HYPO)
                 sys.exit()
 
         pygame.display.flip()
