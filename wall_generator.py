@@ -5,29 +5,8 @@ import pygame
 import matplotlib.pyplot as plt
 import math
 
-#Initialize the pygame module
-pygame.init()
-#Height and width of window in pixels
-disp_width, disp_height = 1300,700
-#Create window
-disp = pygame.display.set_mode((disp_width, disp_height),)
-clock = pygame.time.Clock()
-pygame.time.wait(3000)
 
-#Bools for input
-isLeftPressed = False   #for left mouse button
-isRightPressed = False  #for right mouse button
-isKeyPressed = False    #for anykeyboard button
-accessPoints = []       #store the access points in list
-num_rooms = []          #store the rooms in a list
-#scale -- 1px is equivalent to 0.033149677ft
-SCALE = 0.033149677* 0.0003048 #px to ft to km
-distance_hypo = []      #total distance between the wifi router and each accesspoints
-average_strength = []   #strength in % between the wifi router and each accesspoints
-wifi_position = []      #x and y coordinates of the wifi router during each iteration
-
-
-def strengthLoss(distance,wall_thickness):
+def strengthLoss(distance, wall_thickness, frequency=2.4):
     """
     Calculate the percentage of loss in percentages
     for simplicity the strength decreases by 15% every time the signal goes
@@ -225,6 +204,7 @@ def PlotGraph(average_strength, distance_hypo):
     plt.title('Distance vs Iterations')
     for i, txt in enumerate(max_Y_strength):
         ax.annotate(txt, (min_X_distance[i], min_Y_distance[i]))
+    plt.savefig('Layout_Distance_plot.png')
     plt.show()
 
 def optimalWifiPlacement(distance_hypo, wifi_pos):
@@ -245,54 +225,84 @@ def optimalWifiPlacement(distance_hypo, wifi_pos):
     (X,Y) = wifi_pos[iteration-1][0]
     return X,Y
 
-#Main Loop
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONUP: # mouse button was released
-            if isLeftPressed:
-                CreateRooms(disp, initial_pos, pos, 13)
-                isLeftPressed = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN: #left mouse button is pressed
-            if pygame.mouse.get_pressed()[0]:
-                isLeftPressed = True
-                initial_pos = pygame.mouse.get_pos()
-            if pygame.mouse.get_pressed()[2]:
-                isRightPressed = True
+if __name__ == '__main__':
+    #take input from the user for the wall thickness
+    thickness = int(input('Enter the thickness of rooms in range 1-20: '))
+    while thickness < 1 or thickness>20:
+        thickness = int(input("Please enter the thickness between 1 and 20"))
+    # Initialize the pygame module
+    pygame.init()
+    # Height and width of window in pixels
+    disp_width, disp_height = 1300, 700
+    # Create window
+    disp = pygame.display.set_mode((disp_width, disp_height), )
+    pygame.display.set_caption('Optimal Wifi Position')
+    clock = pygame.time.Clock()
+    pygame.time.wait(3000)
+
+    # Bools for input
+    isLeftPressed = False  # for left mouse button
+    isRightPressed = False  # for right mouse button
+    isKeyPressed = False  # for anykeyboard button
+    accessPoints = []  # store the access points in list
+    num_rooms = []  # store the rooms in a list
+    # scale -- 1px is equivalent to 0.033149677ft
+    SCALE = 0.033149677 * 0.0003048  # px to ft to km
+    distance_hypo = []  # total distance between the wifi router and each accesspoints
+    average_strength = []  # strength in % between the wifi router and each accesspoints
+    wifi_position = []  # x and y coordinates of the wifi router during each iteration
+
+    # Main Loop
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONUP:  # mouse button was released
+                if isLeftPressed:
+                    CreateRooms(disp, initial_pos, pos, thickness)
+                    isLeftPressed = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN:  # left mouse button is pressed
+                if pygame.mouse.get_pressed()[0]:
+                    isLeftPressed = True
+                    initial_pos = pygame.mouse.get_pos()
+                if pygame.mouse.get_pressed()[2]:
+                    isRightPressed = True
+                    pos = pygame.mouse.get_pos()
+                    pygame.draw.rect(disp, (0, 0, 255), (pos[0], pos[1], 10, 10), 0)
+                    # add this position to the accesspoints list
+                    accessPoints.append(pos)
                 pos = pygame.mouse.get_pos()
-                pygame.draw.rect(disp, (0, 0, 255), (pos[0], pos[1], 10, 10), 0)
-                # add this position to the accesspoints list
-                accessPoints.append(pos)
-            pos = pygame.mouse.get_pos()
+                pygame.display.update()
+            if event.type == pygame.MOUSEMOTION and isLeftPressed:  # mouse is moving while we press the left mouse button
+                pos = pygame.mouse.get_pos()
+                # pygame.draw.rect(disp, (255, 0, 0), (pos[0], pos[1], 10, 10), 0)
+                # pygame.display.update()
+            if event.type == pygame.KEYDOWN:
+                isKeyPressed = True
+
+        if isKeyPressed:
+            background = pygame.Surface((disp_width, disp_height))
+            background.blit(disp, (0, 0))
+            pygame.display.flip()
+            interrupt = RandomWifi(disp, False)
+            print("End of RandomWifi")
+            isKeyPressed = False
+            PlotGraph(average_strength, distance_hypo)
+            X, Y = optimalWifiPlacement(distance_hypo, wifi_position)
+            # pygame.draw.circle(disp, (255,255,0),(X,Y),5,5)
+            pygame.draw.line(disp, (255, 215, 0), (X, Y - 30), (X, Y + 30), 2)
+            pygame.draw.line(disp, (255, 215, 0), (X - 30, Y), (X + 30, Y), 2)
+            font = pygame.font.SysFont(None, 24)
+            img = font.render(f'({X},{Y})', True, (0, 0, 255))
+            disp.blit(img,(X+5, Y+5))
             pygame.display.update()
-        if event.type == pygame.MOUSEMOTION and isLeftPressed: # mouse is moving while we press the left mouse button
-            pos = pygame.mouse.get_pos()
-            # pygame.draw.rect(disp, (255, 0, 0), (pos[0], pos[1], 10, 10), 0)
-            # pygame.display.update()
-        if event.type == pygame.KEYDOWN:
-            isKeyPressed = True
+            if interrupt:
+                pygame.image.save(disp, "layout.jpeg")
+                pygame.time.wait(5000)
+                pygame.quit()
+                sys.exit()
 
-    if isKeyPressed:
-        background = pygame.Surface((disp_width, disp_height))
-        background.blit(disp, (0, 0))
         pygame.display.flip()
-        interrupt = RandomWifi(disp, False)
-        print("End of RandomWifi")
-        isKeyPressed = False
-        PlotGraph(average_strength, distance_hypo)
-        X,Y = optimalWifiPlacement(distance_hypo, wifi_position)
-        # pygame.draw.circle(disp, (255,255,0),(X,Y),5,5)
-        pygame.draw.line(disp,(255,215,0),(X,Y-30),(X,Y+30),2)
-        pygame.draw.line(disp,(255,215,0),(X-30,Y),(X+30,Y),2)
-        pygame.display.update()
-        if interrupt:
-            pygame.time.wait(3000)
-            pygame.quit()
-            sys.exit()
-
-    pygame.display.flip()
-
-
