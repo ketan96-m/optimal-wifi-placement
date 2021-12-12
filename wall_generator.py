@@ -270,17 +270,21 @@ def take_width_height(width_height, type):
     return width_height
 
 def create_csv(wifi_pos, strength, distance):
-    # wifi, iterations = zip(*wifi_pos)
-    # wifi = pd.Series(wifi)
-    # strength_per, it = zip(*strength)
-    # strength_per = pd.Series(strength_per)
-    # total_dis, ite = zip(*distance)
-    # total_dis = pd.Series(total_dis)
-    print(wifi_pos)
+    """
+    Create a csv file from the wifi position, strength and distance
+    :param wifi_pos: list of wifi position
+    :type wifi_pos:
+    :param strength: list of percentage
+    :type strength:
+    :param distance: list of total distances
+    :type distance:
+    :return: csv file
+    :rtype:
+    """
     df = pd.DataFrame(columns=['iterations', 'wifi_pos', 'total_distance', 'strength'])
     for wifi, strength_per, total_distance in zip(wifi_pos, strength, distance):
         df1 = pd.DataFrame([[wifi[1], wifi[0], strength_per[0], total_distance[0]]], columns=['iterations', 'wifi_pos', 'total_distance', 'strength'], index = [wifi[1]])
-        df.append(df1)
+        df = df.append(df1)
     df.to_csv('wifi_pos.csv')
 
 if __name__ == '__main__':
