@@ -32,7 +32,7 @@ More and more households and businesses are moving to WiFi networks as their pre
 4. User has to press the "Enter key" to run the simulation. In simulation, the router position is randomized across the layout( _higlighting in green color_ ).
 5. At each position of router, a signal is generate which travels from router to the access point( _higlighting in magenta color_ ). This signal calculates the path distance between wifi router and access point(in pixels), also it identifies the obstacles(walls) in the pathway for calculating loss of strength.
 ![image](https://user-images.githubusercontent.com/89653658/145722394-199ed7d4-f54b-4c3e-b3cc-43e58273c224.png)
-6. For calculation of loos of strength, assuming the strength reduces by 0.10% for each pixel in free space and reduces by 5% for each wall pixel.
+6. For calculation of loss of strength, assuming the strength reduces by 0.10% for each pixel in free space and reduces by 5% for each wall pixel.
 7. For each position, average of strength signal and total distance from each access point is calculated.
 8. The code iterates continuously for computing the optimised position of wifi router until user presses any key.
 9. At the end of simulation, the program converses towards optimised wifi router position which is showed as a yellow cross on the layout.
